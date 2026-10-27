@@ -1,0 +1,123 @@
+<!-- mock-frontend/index.html : 5주차 미션용 간이 프론트 (API 3개 호출) -->
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MovieLog API 테스트</title>
+    <style>
+      body { font-family: sans-serif; max-width: 720px; margin: 32px auto; padding: 0 16px; color: #222; }
+      h1 { font-size: 22px; }
+      section { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+      h2 { font-size: 16px; margin: 0 0 12px; }
+      input { padding: 8px; width: 240px; border: 1px solid #bbb; border-radius: 6px; }
+      button { padding: 8px 14px; margin-left: 6px; border: 0; border-radius: 6px; background: #6750a4; color: #fff; cursor: pointer; }
+      .request { margin-top: 12px; font-family: monospace; font-size: 13px; color: #555; }
+      .result { margin-top: 8px; font-weight: bold; }
+      .ok { color: #1a7f37; } .bad { color: #cf222e; }
+      pre { background: #f6f8fa; padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
+      table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 14px; }
+      th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+      th { background: #f6f8fa; }
+    </style>
+  </head>
+  <body>
+    <h1>MovieLog API 테스트 (Spring : 8080)</h1>
+
+    <!-- 1. 닉네임 중복 체크 -->
+    <section>
+      <h2>1. 닉네임 중복 체크 — GET /members/nickname/{nickname}</h2>
+      <input id="nickname" placeholder="닉네임 (예: 수현)" value="수현" />
+      <button onclick="checkNickname()">중복 확인</button>
+      <div id="nickname-out"></div>
+    </section>
+
+    <!-- 2. 이메일 중복 체크 -->
+    <section>
+      <h2>2. 이메일 중복 체크 — GET /members/email/{email}</h2>
+      <input id="email" placeholder="이메일 (예: noco@umc.com)" value="noco@umc.com" />
+      <button onclick="checkEmail()">중복 확인</button>
+      <div id="email-out"></div>
+    </section>
+
+    <!-- 3. 유저별 평점 조회 -->
+    <section>
+      <h2>3. 유저별 평점 조회 — GET /members/{memberId}/ratings</h2>
+      <input id="memberId" type="number" placeholder="회원 ID (예: 1)" value="1" />
+      <button onclick="getRatings()">평점 조회</button>
+      <div id="ratings-out"></div>
+    </section>
+
+    <script>
+      // 백엔드 주소. 이 페이지(5173)와 포트가 달라 cross-origin → CORS 설정이 필요하다.
+      const API_BASE = "http://localhost:8080";
+
+      // 공통 요청 함수: 요청 URL · 상태 코드 · 응답 JSON을 함께 돌려준다.
+      async function request(path) {
+        const url = API_BASE + path;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          return { url, ok: res.ok, status: res.status, data };
+        } catch (error) {
+          // 서버가 꺼져 있거나 CORS가 막히면 응답 자체를 받지 못해 여기로 온다.
+          return { url, ok: false, status: "요청 실패", data: { error: String(error) } };
+        }
+      }
+
+      // 화면 출력 공통: 요청 줄 + 결과 문구 + 응답 JSON
+      function render(outId, result, message, isGood, extraHtml = "") {
+        document.getElementById(outId).innerHTML = `
+          <div class="request">GET ${result.url} → ${result.status}</div>
+          <div class="result ${isGood ? "ok" : "bad"}">${message}</div>
+          ${extraHtml}
+          <pre>${JSON.stringify(result.data, null, 2)}</pre>`;
+      }
+
+      async function checkNickname() {
+        const nickname = document.getElementById("nickname").value.trim();
+        // 한글·특수문자를 URL에 안전하게 넣기 위해 인코딩한다. ('수현' → %EC%88%98%ED%98%84)
+        const result = await request(`/members/nickname/${encodeURIComponent(nickname)}`);
+        if (!result.ok) return render("nickname-out", result, "요청 실패", false);
+        const available = result.data.available;
+        render("nickname-out", result,
+          available ? `'${nickname}'은(는) 사용 가능한 닉네임입니다.` : `'${nickname}'은(는) 이미 사용 중인 닉네임입니다.`,
+          available);
+      }
+
+      async function checkEmail() {
+        const email = document.getElementById("email").value.trim();
+        const result = await request(`/members/email/${encodeURIComponent(email)}`);
+        if (!result.ok) return render("email-out", result, "요청 실패", false);
+        const available = result.data.available;
+        render("email-out", result,
+          available ? `'${email}'은(는) 사용 가능한 이메일입니다.` : `'${email}'은(는) 이미 사용 중인 이메일입니다.`,
+          available);
+      }
+
+      async function getRatings() {
+        const memberId = document.getElementById("memberId").value.trim();
+        const result = await request(`/members/${memberId}/ratings`);
+
+        // 404 = 회원 없음 (백엔드 ResponseStatusException)
+        if (result.status === 404) return render("ratings-out", result, "존재하지 않는 회원입니다. (404)", false);
+        if (!result.ok) return render("ratings-out", result, "요청 실패", false);
+
+        // 200 + [] = 회원은 있지만 평점 없음 → 404와 구분
+        if (result.data.length === 0) return render("ratings-out", result, "아직 남긴 평점이 없습니다.", true);
+
+        const rows = result.data.map((r) => `
+          <tr>
+            <td>${r.ratingId}</td><td>${r.movieId}</td>
+            <td>${"★".repeat(r.score)}${"☆".repeat(5 - r.score)}</td>
+            <td>${r.comment ?? "-"}</td><td>${r.createdAt}</td>
+          </tr>`).join("");
+        const table = `
+          <table>
+            <tr><th>ratingId</th><th>movieId</th><th>score</th><th>comment</th><th>createdAt</th></tr>
+            ${rows}
+          </table>`;
+        render("ratings-out", result, `${result.data.length}개의 평점을 최신순으로 불러왔습니다.`, true, table);
+      }
+    </script>
+  </body>
+</html>
