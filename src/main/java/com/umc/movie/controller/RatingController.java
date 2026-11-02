@@ -3,6 +3,16 @@ package com.umc.movie.controller;
 
 import com.umc.movie.dto.RatingResponse;
 import com.umc.movie.service.RatingService;
+import com.umc.movie.dto.ApiResponse;
+import com.umc.movie.dto.CreateRatingRequest;
+import com.umc.movie.dto.RatingResponse;
+import com.umc.movie.dto.UpdateRatingRequest;
+import com.umc.movie.service.RatingService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +26,8 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/members")
+
+//① 어떤 요청을 받을지 지정 → ② 요청에서 값 꺼내기 → ③ Service 호출 → ④ 응답 반환
 public class RatingController {
 
     private final RatingService ratingService;
@@ -26,5 +38,33 @@ public class RatingController {
     @GetMapping("/{memberId}/ratings")
     public List<RatingResponse> getMemberRatings(@PathVariable Long memberId) {
         return ratingService.getRatingsByMember(memberId);
+    }
+// 등록: create
+    @PostMapping("/{memberId}/ratings")
+    public ResponseEntity<ApiResponse<Long>> create(
+            @PathVariable Long memberId,
+            @Valid @RequestBody CreateRatingRequest request
+    ) {
+        Long ratingId = ratingService.create(memberId, request);
+        return ResponseEntity.status(201).body(ApiResponse.created("평점 등록에 성공했습니다.", ratingId));
+    }
+// 수정: update
+    // 어떤 평점을 고칠지 알아야 해서 주소에 {ratingId}가 추가
+    // 돌려줄 데이터는 없어서 ApiResponse<Void>이고 result는 null
+    @PatchMapping("/{memberId}/ratings/{ratingId}")
+    public ResponseEntity<ApiResponse<Void>> update(
+            @PathVariable Long memberId,
+            @PathVariable Long ratingId,
+            @Valid @RequestBody UpdateRatingRequest request
+    ) {
+        ratingService.update(ratingId, memberId, request);
+        return ResponseEntity.ok(ApiResponse.ok("평점 수정에 성공했습니다.", null));
+    }
+// 삭제: delete
+    // 삭제에는 JSON이 필요 없어서 @RequestBody가 없다. 삭제 성공 시 204 No Content를 반환하고, 본문은 비워둔다.
+    @DeleteMapping("/{memberId}/ratings/{ratingId}")
+    public ResponseEntity<Void> delete(@PathVariable Long memberId, @PathVariable Long ratingId) {
+        ratingService.delete(ratingId, memberId);
+        return ResponseEntity.noContent().build();
     }
 }
