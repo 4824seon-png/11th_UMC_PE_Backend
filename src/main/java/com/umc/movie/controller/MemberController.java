@@ -1,4 +1,6 @@
-// src/main/java/com/umc/movie/controller/MemberController.java
+// 회원 관련 HTTP 요청을 받는 입구
+// 요청 값을 꺼내 MemberService에 넘기고, 결과를 HTTP 응답으로
+// 중복 판단이나 저장 같은 업무 규칙은 Service 계층에 넣고, Controller에는 판단 로직을 넣지 않는다.
 package com.umc.movie.controller;
 
 import com.umc.movie.dto.EmailCheckResponse;
@@ -6,6 +8,11 @@ import com.umc.movie.dto.NicknameCheckResponse;
 import com.umc.movie.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.umc.movie.dto.ApiResponse;
+import com.umc.movie.dto.MemberResponse;
+import com.umc.movie.dto.SignUpRequest;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 
 // [Controller 계층] HTTP의 입구. URL/메서드를 받고 → 값 꺼내서 → Service 호출 → 결과 반환. 판단 로직은 넣지 않는다.
 // @RestController : 반환 객체를 Jackson이 JSON으로 변환해 응답 바디에 씀 (@Controller + @ResponseBody)
@@ -29,5 +36,14 @@ public class MemberController {
     @GetMapping("/email/{email}")
     public EmailCheckResponse checkEmail(@PathVariable String email) {
         return memberService.checkEmail(email);
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<MemberResponse>> signUp( // JSON 본문을 SignUpRequest로 변환
+            @Valid @RequestBody SignUpRequest request // 변환된 값의 입력 규칙을 검사
+    ) {
+        MemberResponse response = memberService.signUp(request);
+        return ResponseEntity.status(201)
+                .body(ApiResponse.created("회원가입에 성공했습니다.", response));
     }
 }
