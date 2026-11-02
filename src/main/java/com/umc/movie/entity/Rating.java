@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Builder;
 
 @Entity
 @Table(name = "rating", uniqueConstraints = @UniqueConstraint(columnNames = {"member_id", "movie_id"}))
@@ -30,4 +31,19 @@ public class Rating extends BaseTimeEntity {
 
     @Column(columnDefinition = "TEXT")
     private String comment;
+
+    //@Builder 생성자: 새 평점 만들기
+    @Builder
+    public Rating(Member member, Long movieId, Integer score, String comment) {
+        this.member = member;
+        this.movieId = movieId;
+        this.score = score;
+        this.comment = comment;
+    }
+    // update(): 있는 평점 고치기
+    // setter가 있다면: 영화까지 어디서든 바꿀 수 있음
+    public void update(Integer score, String comment) {
+        this.score = score;
+        this.comment = comment;
+    }
 }
