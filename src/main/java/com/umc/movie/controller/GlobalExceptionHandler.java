@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import com.umc.movie.exception.ApiException;
 
 @RestControllerAdvice
 // 모든 Controller에서 나온 예외를 이 클래스가 받고, 반환값을 JSON으로 응답
@@ -46,6 +47,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateMemberException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicateMember(DuplicateMemberException exception) {
         return ResponseEntity.status(409)
+                .body(ApiResponse.failure(exception.getCode(), exception.getMessage()));
+    }
+
+    // 우리가 직접 던진 예외입니다. 예외가 들고 온 상태 코드와 코드 문자열을 그대로 씁니다.
+    // 스프링이 원래 정확하게 내주던 404, 405, 400 응답이 전부 500으로 덮인다.
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ApiResponse<Void>> handleApiException(ApiException exception) {
+        return ResponseEntity.status(exception.getStatus())
                 .body(ApiResponse.failure(exception.getCode(), exception.getMessage()));
     }
 }

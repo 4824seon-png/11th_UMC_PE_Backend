@@ -12,6 +12,10 @@ import com.umc.movie.dto.MemberResponse;
 import com.umc.movie.dto.SignUpRequest;
 import com.umc.movie.entity.Member;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.umc.movie.dto.MemberInfoResponse;
+import com.umc.movie.exception.ApiException;
+import org.springframework.http.HttpStatus;
+import com.umc.movie.dto.MemberUpdateRequest;
 
 // [Service 계층] 비즈니스 판단(규칙) + 트랜잭션 담당. SQL은 모르고 Repository에게 "묻기만" 한다.
 // @Service : Spring이 이 클래스를 Bean으로 만들어 관리 → Controller에 주입 가능
@@ -55,5 +59,31 @@ public class MemberService {
 
         Member savedMember = memberRepository.save(member);
         return new MemberResponse(savedMember.getMemberId(), savedMember.getEmail(), savedMember.getNickname());
+    }
+
+    public MemberInfoResponse getMyInfo(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MEMBER404_1",
+                        "해당 회원을 찾을 수 없습니다."));
+
+        return MemberInfoResponse.from(member);
+    }
+
+    public MemberInfoResponse updateMyInfo(Long memberId, MemberUpdateRequest request) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "MEMBER404_1",
+                        "해당 회원을 찾을 수 없습니다."));
+
+        // 나를 제외한 다른 회원이 그 닉네임을 쓰고 있다면 막습니다.
+        // DB에도 UNIQUE 제약이 걸려 있지만 제약 위반 예외 대신 우리가 정한 응답을 주기 위해 먼저 확인합니다.
+        if (memberRepository.existsByNicknameAndMemberIdNot(request.nickname(), memberId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "MEMBER409_1",
+                    "이미 사용 중인 닉네임입니다.");
+        }
+
+        member.updateNickname(request.nickname());
+        memberRepository.save(member);
+
+        return MemberInfoResponse.from(member);
     }
 }
