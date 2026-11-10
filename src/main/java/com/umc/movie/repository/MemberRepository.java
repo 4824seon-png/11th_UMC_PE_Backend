@@ -3,6 +3,7 @@ package com.umc.movie.repository;
 
 import com.umc.movie.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 
 //서버 시작 → Spring Data JPA가 "JpaRepository를 상속한 인터페이스"를 발견
 //         → 실행 중에 구현 객체(프록시)를 자동으로 만들어 Bean으로 등록
@@ -12,4 +13,7 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     // <엔티티, 엔티티의 @Id 필드타입>
     boolean existsByNickname(String nickname);
     boolean existsByEmail(String email);
+    Optional<Member> findByEmail(String email);
+    // "이 닉네임을 쓰는 회원이 있는가? 단, 나 자신은 빼고" 를 한 번에 확인합니다
+    boolean existsByNicknameAndMemberIdNot(String nickname, Long memberId);
 }
