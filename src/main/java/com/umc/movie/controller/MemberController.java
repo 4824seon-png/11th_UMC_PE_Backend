@@ -17,6 +17,8 @@ import com.umc.movie.dto.MemberInfoResponse;
 import com.umc.movie.interceptor.AuthInterceptor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.umc.movie.dto.MemberUpdateRequest;
 
 // [Controller 계층] HTTP의 입구. URL/메서드를 받고 → 값 꺼내서 → Service 호출 → 결과 반환. 판단 로직은 넣지 않는다.
@@ -25,6 +27,7 @@ import com.umc.movie.dto.MemberUpdateRequest;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/members")
+@Tag(name = "회원", description = "회원가입과 내 정보 API")
 public class MemberController {
 
     private final MemberService memberService;
@@ -33,15 +36,22 @@ public class MemberController {
     // {nickname} : 경로 변수 자리. @PathVariable이 이 자리 값을 꺼내 파라미터에 담음 (이름이 같아야 자동 연결)
     // Path를 쓰는 이유 : "이 닉네임"이라는 특정 대상 하나를 가리키므로
     @GetMapping("/nickname/{nickname}")
+
     public NicknameCheckResponse checkNickname(@PathVariable String nickname) {
         return memberService.checkNickname(nickname);
     }
+
 
     // GET /members/email/{email}
     @GetMapping("/email/{email}")
     public EmailCheckResponse checkEmail(@PathVariable String email) {
         return memberService.checkEmail(email);
     }
+
+    @Operation(
+            summary = "회원가입",
+            description = "이메일, 비밀번호, 닉네임으로 회원을 등록합니다. 토큰이 없어도 호출할 수 있는 공개 API입니다."
+    )
 
     @PostMapping
     public ResponseEntity<ApiResponse<MemberResponse>> signUp( // JSON 본문을 SignUpRequest로 변환
