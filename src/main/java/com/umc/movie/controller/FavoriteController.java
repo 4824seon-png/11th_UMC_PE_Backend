@@ -84,6 +84,24 @@ public class FavoriteController {
                 .body(ApiResponse.created("즐겨찾기를 등록했습니다.", response));
     }
 
+    @Operation(
+            summary = "내 즐겨찾기 목록 조회",
+            description = "토큰의 주인인 회원이 즐겨찾기한 영화 목록을 최신순으로 조회합니다. 즐겨찾기가 없으면 빈 배열을 돌려줍니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "조회 성공 (없으면 빈 배열)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", description = "토큰이 없거나 유효하지 않음",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "isSuccess": false,
+                              "code": "AUTH401_2",
+                              "message": "로그인이 필요한 요청입니다.",
+                              "result": null
+                            }
+                            """)))
+    })
     @GetMapping("/favorites")
     public ResponseEntity<ApiResponse<List<FavoriteResponse>>> getMyFavorites(
             @RequestAttribute(AuthInterceptor.MEMBER_ID) Long memberId
@@ -92,6 +110,24 @@ public class FavoriteController {
         return ResponseEntity.ok(ApiResponse.ok("내 즐겨찾기 목록을 조회했습니다.", response));
     }
 
+    @Operation(
+            summary = "즐겨찾기 여부 조회",
+            description = "토큰의 주인인 회원이 이 영화를 즐겨찾기했는지 확인합니다. 즐겨찾기하지 않았어도 404가 아니라 200과 isFavorite: false를 돌려줍니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "조회 성공 (isFavorite: true/false)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", description = "토큰이 없거나 유효하지 않음",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "isSuccess": false,
+                              "code": "AUTH401_2",
+                              "message": "로그인이 필요한 요청입니다.",
+                              "result": null
+                            }
+                            """)))
+    })
     @GetMapping("/favorites/{movieId}")
     public ResponseEntity<ApiResponse<FavoriteStatusResponse>> getStatus(
             @RequestAttribute(AuthInterceptor.MEMBER_ID) Long memberId,
@@ -101,6 +137,34 @@ public class FavoriteController {
         return ResponseEntity.ok(ApiResponse.ok("즐겨찾기 여부를 조회했습니다.", response));
     }
 
+    @Operation(
+            summary = "즐겨찾기 해제",
+            description = "토큰의 주인인 회원의 즐겨찾기에서 이 영화를 제거합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "즐겨찾기 해제 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", description = "토큰이 없거나 유효하지 않음",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "isSuccess": false,
+                              "code": "AUTH401_2",
+                              "message": "로그인이 필요한 요청입니다.",
+                              "result": null
+                            }
+                            """))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", description = "즐겨찾기하지 않은 영화",
+                    content = @Content(mediaType = "application/json", examples = @ExampleObject(value = """
+                            {
+                              "isSuccess": false,
+                              "code": "FAVORITE404_1",
+                              "message": "즐겨찾기한 영화를 찾을 수 없습니다.",
+                              "result": null
+                            }
+                            """)))
+    })
     @DeleteMapping("/favorites/{movieId}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @RequestAttribute(AuthInterceptor.MEMBER_ID) Long memberId,
